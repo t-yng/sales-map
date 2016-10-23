@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        // "module": "commonjs",
+        "target": "es5",
+        "noImplicitAny": false,
+        "sourceMap": false,
+        "outDir": "js",
+        "outFile": "js/bundle.js"
+    },
+    "files": [
+        "ts/index.ts",
+        "ts/bezierCurve.ts"
+    ]
+}

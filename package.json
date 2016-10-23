@@ -1,0 +1,19 @@
+{
+  "name": "sales-map",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "d3": "^3.5.*"
+  },
+  "devDependencies": {
+    "@types/d3": "^3.5.36",
+    "@types/d3-ease": "^1.0.4",
+    "@types/d3-selection": "^1.0.5"
+  }
+}
