@@ -4,8 +4,8 @@ type Point = {x: number, y: number}
 const IMAGE_WIDTH_DEFAULT = 60
 const IMAGE_HEIGHT_DEFAULT = 60
 
-let items = []
-let paths = []
+let items: d3.selection.Update<mapboxgl.LngLat>[] = []
+let paths: d3.Selection<mapboxgl.LngLat[]>[] = []
 
 mapboxgl.accessToken = 'pk.eyJ1IjoidC15bmciLCJhIjoiY2l1bDIxamNyMDAxdTJ5bnVtNWE0c2VkZSJ9.KzZHJuz-6EZL5Rf-QSlNVg';
 
@@ -40,8 +40,8 @@ map.on('load', init)
 
 /**
  * 始点と終点からベジェ曲線を描くための制御点を生成
- * @params {{x: number, y: number}} start 
- * @params {{x: number, y: number}} end 
+ * @params {mapboxgl.Point} start
+ * @params {mapboxgl.Point} end
  * @params {number} alpha
  * @return 
  */
