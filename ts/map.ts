@@ -142,7 +142,7 @@ function addAnimation(origin: mapboxgl.LngLat, destination: mapboxgl.LngLat): vo
 function init() {
 
   destinations.forEach(destination => {
-    addAnimation(origin, destination)
+    setTimeout(() => addAnimation(origin, destination), Math.random() * 10000)    
   })
 
   map.on('move', update)
