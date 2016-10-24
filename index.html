@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>Document</title>
-  <script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
-  <script src="https://code.createjs.com/tweenjs-0.6.2.min.js"></script>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <script src="https://d3js.org/d3.v3.min.js"></script>
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.26.0/mapbox-gl.js'></script>
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.26.0/mapbox-gl.css' rel='stylesheet' />
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div id="map"></div>
-  <canvas id="canvas" width="1080" height="720"></canvas>
-  <script src="js/bundle.js"></script>  
+  <div id="svg-layer"></div>
+  <script src="js/bundle.js"></script>
 </body>
 </html>

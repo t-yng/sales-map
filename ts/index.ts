@@ -1,48 +1,49 @@
-/// <reference path="bezierCurve.ts"/>
+// declare const d3: any
 
-createjs.MotionGuidePlugin.install()
+// const svg = d3.select('#svg-layer')
+//   .append('svg')
+//   .attr('width', 1080)
+//   .attr('height', 720)
 
-const FPS = 60
+// const x1 = 100,
+//       y1 = 100
 
-const x1 = 200,
-      y1 = 200,
-      x2 = x1 + 100,
-      y2 = y1 - 100,
-      x3 = x2 + 100,
-      y3 = y1
+// const points = [
+//   [x1, y1],
+//   [x1 + 100, y1 + 100],
+//   [x1 + 200, y1]
+// ]
 
-const bezierCurve = new BezierCurve(x1, y1, x2, y2, x3, y3)
+// const line = d3.svg.line()
+//   .x(d => d[0])
+//   .y(d => d[1])
+//   .interpolate('basis')
 
-const stage = new createjs.Stage('canvas')
-const circle = new createjs.Shape()
-circle.graphics.beginFill('white')
-  .beginStroke('blue')
-  .setStrokeStyle(2)
-  .drawCircle(0, 0, 4)
-circle.x = x1
-circle.y = y1
+// const path = svg.append('path')
+//   .datum(points)
+//   .attr('d', line)
+//   .attr('fill', 'transparent')
+//   .attr('stroke', 'red')
+//   .attr('stroke-width', 2)
 
-const bezier = new createjs.Shape()
-bezier.graphics.beginStroke('red')
-  .moveTo(x1, y1)
-  .quadraticCurveTo(x2, y2, x3, y3)
+// const circle = svg.append('circle')
+//   .attr('transform', `translate(${x1}, ${y1})`)
+//   .attr('r', 1)
+//   .attr('fill', 'transparent')
+//   .attr('stroke', 'blue')
+//   .attr('stroke-width', 2)
 
-stage.addChild(bezier)
-stage.addChild(circle)
-
-console.log(circle.graphics.c[0])
-
-createjs.Tween.get(circle)
-  .to({guide: {path: [x1,y1, x2, y2, x3, y3]}}, 3000)
-  .wait(500)
-  .to({guide: {path: [x3, y3, x2, y2, x1, y1]}}, 3000)
-
-
-stage.update()
-
-createjs.Ticker.addEventListener('tick', handleTick)
-createjs.Ticker.setFPS(FPS)
-
-function handleTick() {
-  stage.update()
-}
+// circle.transition()
+//   .duration(300)
+//   .ease('linear')
+//   .attr('r', d => 20)
+//   .transition()
+//   .duration(3000)
+//   .ease('linear')
+//   .attrTween('transform', (d, i) => {
+//     const l = path.node().getTotalLength()
+//     return t => {
+//       const p = path.node().getPointAtLength(t * l)
+//       return `translate(${p.x}, ${p.y})`
+//     }
+//   })

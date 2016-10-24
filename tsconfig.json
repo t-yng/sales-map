@@ -8,7 +8,8 @@
         "outFile": "js/bundle.js"
     },
     "files": [
-        "ts/index.ts",
-        "ts/bezierCurve.ts"
+        // "ts/index.ts",
+        // "ts/bezierCurve.ts",
+        "ts/map.ts"
     ]
 }
