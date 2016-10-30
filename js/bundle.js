@@ -9,6 +9,20 @@ var map = new mapboxgl.Map({
     center: [137.91854900230788, 38.734418429646695],
     zoom: 4.7 // starting zoom
 });
+var canvas = document.getElementById('canvas');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+var ctx = canvas.getContext('2d');
+ctx.lineWidth = 5;
+ctx.strokeStyle = 'red';
+var stage = new createjs.Stage('canvas');
+// stage.autoClear = false
+var background = new createjs.Shape();
+background.graphics.beginFill('black')
+    .drawRect(0, 0, canvas.width, canvas.height)
+    .endFill();
+background.alpha = 0.04;
+stage.addChild(background);
 var svg = d3.select('#svg-layer')
     .append('svg')
     .attr('width', window.innerWidth)
@@ -29,8 +43,8 @@ var destinations = [
 map.on('load', init);
 /**
  * 始点と終点からベジェ曲線を描くための制御点を生成
- * @params {{x: number, y: number}} start
- * @params {{x: number, y: number}} end
+ * @params {mapboxgl.Point} start
+ * @params {mapboxgl.Point} end
  * @params {number} alpha
  * @return
  */
@@ -81,6 +95,59 @@ function addAnimation(origin, destination) {
         return "translate(" + (point.x - 25) + ", " + (point.y - 25) + ")";
     });
     items.push(item);
+    var FPS = 60;
+    setTimeout(function () {
+        var pathLength = path.node().getTotalLength();
+        var pathPoints = [];
+        var line = d3.svg.line()
+            .x(function (d) { return d.x; })
+            .y(function (d) { return d.y; });
+        var animationPath = svg.append('path')
+            .datum([])
+            .attr('d', line)
+            .attr('stroke', 'red')
+            .attr('stroke-width', '1');
+        var p = path.node().getPointAtLength(0);
+        pathPoints.push(p);
+        var lines = [];
+        var t = 0;
+        var value = 0.01;
+        var timer = setInterval(function () {
+            if (t > 1) {
+                var alpha = lines[(1 / value) - 1].alpha;
+                if (alpha === 0) {
+                    lines.forEach(function (line) { return stage.removeChild(line); });
+                    clearInterval(timer);
+                }
+            }
+            t += value;
+            var p = path.node().getPointAtLength(t * pathLength);
+            pathPoints.push(p);
+            var startPoint = pathPoints[pathPoints.length - 1];
+            var endPoint = pathPoints[pathPoints.length - 2];
+            var lineColor = createjs.Graphics.getRGB(255, 0, 0);
+            var line = new createjs.Shape();
+            line.graphics.setStrokeStyle(1.5);
+            line.graphics.beginStroke(lineColor);
+            line.graphics.moveTo(startPoint.x, startPoint.y);
+            line.graphics.lineTo(endPoint.x, endPoint.y);
+            line.graphics.endStroke();
+            line.alpha = 1;
+            line.compositeOperation = 'lighter';
+            lines.push(line);
+            stage.addChild(line);
+            if (lines.length > 30) {
+                lines.slice(0, -30).forEach(function (line) {
+                    line.alpha -= 0.1;
+                    if (line.alpha == 0) {
+                        lines.splice(lines.indexOf(line), 1);
+                        stage.removeChild(line);
+                    }
+                });
+            }
+            stage.update();
+        }, 1000 / FPS);
+    }, 500);
     item.transition()
         .delay(500)
         .duration(1500)
@@ -116,7 +183,7 @@ function addAnimation(origin, destination) {
 }
 function init() {
     destinations.forEach(function (destination) {
-        addAnimation(origin, destination);
+        setTimeout(function () { return addAnimation(origin, destination); }, Math.random() * 10000);
     });
     map.on('move', update);
 }
