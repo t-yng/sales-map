@@ -1,0 +1,15 @@
+@startuml
+hide footbox
+
+participant クライアント as client
+participant サーバー as server
+
+client -> client: 地図を描画
+
+client -> server: 受注データリクエスト
+client <- server: 受注データ
+
+client -> client: 受注データから商品オブジェクト生成
+
+client -> client: 商品オブジェクトをアニメーション
+@enduml

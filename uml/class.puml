@@ -1,0 +1,55 @@
+@startuml
+
+class View {
+  - salesMap
+  - animationStage
+  + addProduct()
+}
+
+class Map
+
+class AnimationStage {
+  - products
+  + addProduct()
+}
+
+class Product {
+  - path
+  + animate()
+}
+
+class Path {
+  - lines
+  + animate()
+}
+
+class RequestHandler {
+  + requestOrders(last_date)
+  + requestSales(date)
+}
+
+class ProductFactory {
+  + createProduct(order): Product
+}
+
+View --> Map
+View -right- Controller
+View --> AnimationStage
+Controller --> ProductFactory
+Controller --> RequestHandler
+AnimationStage --> Product
+Product --> Path
+@enduml
+
+View: Map, Canvas
+Model: Product, Path
+
+Canvas --> Product, Path
+
+// 受け取った受注データをProductFactoryに渡して、Productオブジェクト生成
+// 生成されたProductオブジェクトをViewに渡す（addProduct）
+// AnimationStageに商品オブジェクトを追加
+// AnimationStageは、受け取った受注データから商品オブジェクトを生成
+// イベントを登録 => onResponseOrders(orders)
+
+// 受注データに応じて, Product, Pathを生成する処理

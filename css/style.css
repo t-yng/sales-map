@@ -11,7 +11,7 @@ body {
   height: 100%;
 }
 
-#svg-layer {
+#svg-layer, #canvas {
   background: transparent;
   pointer-events: none;
 }

@@ -16,25 +16,7 @@ var map = new mapboxgl.Map({
     zoom: 4.7 // starting zoom
 });
 
-const canvas = <HTMLCanvasElement> document.getElementById('canvas')
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight
-
-const ctx = canvas.getContext('2d')
-ctx.lineWidth = 5
-ctx.strokeStyle = 'red'
-
 const stage = new createjs.Stage('canvas')
-// stage.autoClear = false
-
-const background = new createjs.Shape()
-background.graphics.beginFill('black')
-.drawRect(0, 0, canvas.width, canvas.height)
-.endFill()
-
-background.alpha = 0.04
-
-stage.addChild(background)
 
 const svg = d3.select('#svg-layer')
   .append('svg')
@@ -102,10 +84,61 @@ function createPath(origin: mapboxgl.LngLat, destination: mapboxgl.LngLat) {
     .datum(pathPoints)
     .attr('d', line)
     .attr('fill', 'transparent')
-    // .attr('stroke', 'red')
-    // .attr('stroke-width', 2)
 
   return path
+}
+
+function createPathLine (startPoint, endPoint) {
+  const lineColor = createjs.Graphics.getRGB(255, 0, 0)
+  const line = new createjs.Shape()
+  line.graphics.setStrokeStyle(1.5)
+  line.graphics.beginStroke(lineColor)
+  line.graphics.moveTo(startPoint.x, startPoint.y)
+  line.graphics.lineTo(endPoint.x, endPoint.y)
+  line.graphics.endStroke()
+  line.alpha = 0
+  line.compositeOperation = 'lighter'
+
+  return line
+}
+
+function getPathPoints (path) {
+  const pathLength = path.node().getTotalLength()
+
+  return _.range(0, 1, 0.01)
+   .map(t => path.node().getPointAtLength(t * pathLength))
+}
+
+function animatePath (path) {
+  const pathPoints = getPathPoints(path)
+
+  const pathLines = _.zip(_.initial(pathPoints), _.rest(pathPoints))
+   .map(points => {
+     const line = createPathLine(points[0], points[1])
+     stage.addChild(line)
+
+     return line
+   })
+
+  let counter = 0
+  const ANIMATION_PATH_LENGTH = 20
+  const FPS = 60
+  let timer = setInterval(() => {
+    _.chain(pathLines).rest(counter).first(ANIMATION_PATH_LENGTH).forEach(line => { line.alpha = 1 })
+    _.chain(pathLines).rest(0).first(counter)
+    .forEach(line => {
+      if (line.alpha > 0) line.alpha -= 0.1
+    })
+
+    counter += 1
+    console.log(counter)
+    stage.update()
+
+    if (_.every(pathLines, path => path.alpha < 0)) {
+      pathLines.forEach(line => stage.removeChild(line))
+      clearInterval(timer)
+    }
+  }, 1000 / FPS)
 }
 
 function addAnimation(origin: mapboxgl.LngLat, destination: mapboxgl.LngLat): void {
@@ -125,71 +158,7 @@ function addAnimation(origin: mapboxgl.LngLat, destination: mapboxgl.LngLat): vo
   
   items.push(item)
 
-  const FPS = 60
-  setTimeout(() => {
-    const pathLength = path.node().getTotalLength()
-    let pathPoints = []
-    const line = d3.svg.line()
-      .x(d => d.x)
-      .y(d => d.y)
-
-    let animationPath = svg.append('path')
-      .datum([])
-      .attr('d', line)
-      .attr('stroke', 'red')
-      .attr('stroke-width', '1')
-
-    const p = path.node().getPointAtLength(0)
-    pathPoints.push(p)
-
-    let lines = []
-
-    let t = 0
-    let value = 0.01
-    const timer = setInterval(() => {
-
-      // 表示するべき最後のラインが透明のときに全てのラインをステージ上から削除
-      if(t > 1) {
-        const alpha = lines[(1 / value)　- 1].alpha
-        if(alpha === 0) {
-          lines.forEach(line => stage.removeChild(line))
-          clearInterval(timer)
-        }
-      }
-      
-      t += value
-      const p = path.node().getPointAtLength(t * pathLength)
-      pathPoints.push(p)
-
-      const startPoint = pathPoints[pathPoints.length - 1]
-      const endPoint = pathPoints[pathPoints.length - 2]
-
-      const lineColor = createjs.Graphics.getRGB(255, 0, 0)
-      const line = new createjs.Shape()
-      line.graphics.setStrokeStyle(1.5)
-      line.graphics.beginStroke(lineColor)
-      line.graphics.moveTo(startPoint.x, startPoint.y)
-      line.graphics.lineTo(endPoint.x, endPoint.y)
-      line.graphics.endStroke()
-      line.alpha = 1
-      line.compositeOperation = 'lighter'
-
-      lines.push(line)
-      stage.addChild(line)
-
-      if(lines.length > 30) {
-        lines.slice(0, -30).forEach(line => {
-          line.alpha -= 0.1
-          if(line.alpha == 0) {
-            lines.splice(lines.indexOf(line), 1)
-            stage.removeChild(line)
-          }
-        })
-      }
-
-      stage.update()
-    }, 1000 / FPS)
-  }, 500)
+  setTimeout(() => animatePath(path), 800)
 
   item.transition()
     .delay(500)
@@ -227,7 +196,6 @@ function addAnimation(origin: mapboxgl.LngLat, destination: mapboxgl.LngLat): vo
 }
 
 function init() {
-
   destinations.forEach(destination => {
     setTimeout(() => addAnimation(origin, destination), Math.random() * 10000)    
   })
