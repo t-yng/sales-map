@@ -10,14 +10,13 @@
     "files": [
         // "ts/index.ts",
         // "ts/bezierCurve.ts",
-        "ts/Path.ts",
+        "ts/Controller.ts",
+        "ts/AnimationPath.ts",
         "ts/Product.ts",
         "ts/AnimationStage.ts",
         "ts/View.ts",
         "ts/ProductFactory.ts",
         "ts/RequestHandler.ts",
-        "ts/Controller.ts",
-        "ts/map.ts",
-        "ts/SalesMap.ts"
+        "ts/main.ts"
     ]
 }

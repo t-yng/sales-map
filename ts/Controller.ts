@@ -3,13 +3,31 @@ class Controller {
   private view: View
 
   public constructor(view: View) {
-
+    this.view = view
     // 定期実行(5分おき)にて受注データを取得
     setInterval(() => {
       const orders = RequestHandler.requestOrders()
-      const products = _.flatten(orders.map(order => ProductFactory.createProducts(order)))
-      products.forEach(product => view.addProduct(product))
+      view.onResponseOrders(orders)
     }, 1000 * 60 * 5)
+  }
+
+  public sample(): void {
+  
+    const orders = [
+      {
+        "delivery_location": {
+          "lng": 141.34694, 
+          "lat": 43.06417
+        },
+        "products": [
+          {
+            "price": 100
+          }
+        ]
+      }
+    ]
+
+    this.view.onResponseOrders(orders)
   }
 
 }

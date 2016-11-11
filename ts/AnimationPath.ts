@@ -1,27 +1,48 @@
-class Path {
+declare const d3: any
+
+class AnimationPath {
   private lines: createjs.Shape[]
+  private path
+  private origin
+  private destination
 
   public constructor(origin, destination) {
+
+    this.origin = origin
+    this.destination = destination
+
     const controlPoint = this.createBezierControlPoint(origin, destination)
 
     const svg = d3.select('#svg-layer')
         .append('svg')
         .attr('width', window.innerWidth)
         .attr('height', window.innerHeight)
-
     
     const line = d3.svg.line()
-      .x(d => map.project(d).x)
-      .y(d => map.project(d).y)
+      .x(d => d.x)
+      .y(d => d.y)
       .interpolate('basis')
 
-    const path = svg.append('path')
+    this.path = svg.append('path')
       .datum([origin, controlPoint, destination])
       .attr('d', line)
       .attr('fill', 'transparent')
 
-    // path生成
-    this.lines = this.createPathLines(path)
+    // pathを分割
+    this.lines = this.createPathLines(this.path)
+  }
+
+  public getOrigin() {
+    return this.origin
+  }
+
+  public getDestination() {
+    return this.destination
+  }
+
+  public getPointAtLength(t: number) {
+    const pathLength = this.path.node().getTotalLength()
+    return this.path.node().getPointAtLength(t * pathLength)    
   }
 
   private createBezierControlPoint(start: mapboxgl.Point, end: mapboxgl.Point, alpha: number = 0): mapboxgl.Point {
@@ -35,7 +56,7 @@ class Path {
     const points = this.getPathPoints(path)
 
     return  _.zip(_.initial(points), _.rest(points))
-      .map(points => createPathLine(points[0], points[1]))
+      .map(points => this.createPathLine(points[0], points[1]))
   }
 
   private createPathLine (startPoint, endPoint) {
@@ -60,6 +81,10 @@ class Path {
   }
 
   public startAnimation(stage, animation_path_length = 20, fps = 60) {
+
+    this.lines.forEach(line => stage.addChild(line))
+    stage.update()
+
     let counter = 0
     let timer = setInterval(() => {
       _.chain(this.lines).rest(counter).first(animation_path_length).forEach(line => { line.alpha = 1 })
@@ -69,7 +94,6 @@ class Path {
       })
 
       counter += 1
-      console.log(counter)
       stage.update()
 
       if (_.every(this.lines, line => line.alpha < 0)) {
@@ -77,7 +101,6 @@ class Path {
         clearInterval(timer)
       }
     }, 1000 / fps)
+  }  
 
-  }
-  
 }

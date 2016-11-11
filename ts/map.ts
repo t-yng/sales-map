@@ -1,5 +1,5 @@
 declare const d3: any
-type Point = {x: number, y: number}
+// type Point = {x: number, y: number}
 
 const IMAGE_WIDTH_DEFAULT = 60
 const IMAGE_HEIGHT_DEFAULT = 60

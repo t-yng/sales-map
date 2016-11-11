@@ -1,7 +1,13 @@
 class AnimationStage extends createjs.Stage{
-  private prodocuts: Array<Product>
+  private products: Array<Product>
+
+  public constructor(canvas: string) {
+    super(canvas)
+    this.products = []
+  }
 
   public addProduct(product: Product): void {
-    this.prodocuts.push(product)
+    this.products.push(product)
+    product.startAnimation(this)
   }
 }
