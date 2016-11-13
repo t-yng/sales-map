@@ -8,10 +8,9 @@
         "outFile": "js/bundle.js"
     },
     "files": [
-        // "ts/index.ts",
-        // "ts/bezierCurve.ts",
         "ts/Controller.ts",
-        "ts/AnimationPath.ts",
+        "ts/MotionGuidePath.ts",
+        "ts/AnimationLocus.ts",
         "ts/Product.ts",
         "ts/AnimationStage.ts",
         "ts/View.ts",

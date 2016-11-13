@@ -24,10 +24,19 @@ class Controller {
             "price": 100
           }
         ]
+      },
+      {
+        "delivery_location": {
+          "lng": 130.29889, 
+          "lat": 33.24944
+        },
+        "products": [
+          {
+            "price": 100
+          }
+        ]
       }
     ]
-
     this.view.onResponseOrders(orders)
   }
-
 }

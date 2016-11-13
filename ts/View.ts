@@ -17,6 +17,10 @@ class View {
       center: [137.91854900230788, 38.734418429646695], // starting position
       zoom: 4.7 // starting zoom
     })
+
+    createjs.MotionGuidePlugin.install()
+    createjs.Ticker.addEventListener('tick', () => this.animationStage.update())
+
     this.animationStage = new AnimationStage('canvas')
 
     this.map.on('load', () => {
@@ -44,7 +48,8 @@ class View {
     const destination = this.map.project(mapboxgl.LngLat.convert([lng, lat]))
 
     products.forEach(product => {
-      product.setAnimationPath(origin, destination)
+      product.origin = origin
+      product.destination = destination
     })
 
     return products

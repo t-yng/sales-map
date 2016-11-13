@@ -25,6 +25,17 @@ var Controller = (function () {
                         "price": 100
                     }
                 ]
+            },
+            {
+                "delivery_location": {
+                    "lng": 130.29889,
+                    "lat": 33.24944
+                },
+                "products": [
+                    {
+                        "price": 100
+                    }
+                ]
             }
         ];
         this.view.onResponseOrders(orders);
@@ -33,144 +44,187 @@ var Controller = (function () {
 }());
 var AnimationPath = (function () {
     function AnimationPath(origin, destination) {
-        this.origin = origin;
-        this.destination = destination;
-        var controlPoint = this.createBezierControlPoint(origin, destination);
-        var svg = d3.select('#svg-layer')
-            .append('svg')
-            .attr('width', window.innerWidth)
-            .attr('height', window.innerHeight);
-        var line = d3.svg.line()
-            .x(function (d) { return d.x; })
-            .y(function (d) { return d.y; })
-            .interpolate('basis');
-        this.path = svg.append('path')
-            .datum([origin, controlPoint, destination])
-            .attr('d', line)
-            .attr('fill', 'transparent');
-        // pathを分割
-        this.lines = this.createPathLines(this.path);
+        this._origin = origin;
+        this._destination = destination;
+        this._controlPoint = this.createBezierControlPoint(origin, destination);
+        this._points = [
+            this._origin,
+            this._controlPoint,
+            this._destination
+        ];
     }
-    AnimationPath.prototype.getOrigin = function () {
-        return this.origin;
-    };
-    AnimationPath.prototype.getDestination = function () {
-        return this.destination;
-    };
-    AnimationPath.prototype.getPointAtLength = function (t) {
-        var pathLength = this.path.node().getTotalLength();
-        return this.path.node().getPointAtLength(t * pathLength);
-    };
+    Object.defineProperty(AnimationPath.prototype, "origin", {
+        get: function () {
+            return this._origin;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AnimationPath.prototype, "deestination", {
+        get: function () {
+            return this._destination;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AnimationPath.prototype, "points", {
+        get: function () {
+            return _.chain(this._points)
+                .map(function (point) { return [point.x, point.y]; })
+                .flatten(true)
+                .value();
+        },
+        enumerable: true,
+        configurable: true
+    });
     AnimationPath.prototype.createBezierControlPoint = function (start, end, alpha) {
         if (alpha === void 0) { alpha = 0; }
         var x = Math.min(start.x, end.x) + Math.abs(start.x - end.x) / 2;
         var y = Math.min(start.y, end.y) - alpha;
         return new mapboxgl.Point(x, y);
     };
-    AnimationPath.prototype.createPathLines = function (path) {
-        var _this = this;
-        var points = this.getPathPoints(path);
-        return _.zip(_.initial(points), _.rest(points))
-            .map(function (points) { return _this.createPathLine(points[0], points[1]); });
-    };
-    AnimationPath.prototype.createPathLine = function (startPoint, endPoint) {
-        var lineColor = createjs.Graphics.getRGB(255, 0, 0);
-        var line = new createjs.Shape();
-        line.graphics.setStrokeStyle(1.5);
-        line.graphics.beginStroke(lineColor);
-        line.graphics.moveTo(startPoint.x, startPoint.y);
-        line.graphics.lineTo(endPoint.x, endPoint.y);
-        line.graphics.endStroke();
-        line.alpha = 0;
-        line.compositeOperation = 'lighter';
-        return line;
-    };
-    AnimationPath.prototype.getPathPoints = function (path) {
-        var pathLength = path.node().getTotalLength();
-        return _.range(0, 1, 0.01)
-            .map(function (t) { return path.node().getPointAtLength(t * pathLength); });
-    };
-    AnimationPath.prototype.startAnimation = function (stage, animation_path_length, fps) {
-        var _this = this;
-        if (animation_path_length === void 0) { animation_path_length = 20; }
-        if (fps === void 0) { fps = 60; }
-        this.lines.forEach(function (line) { return stage.addChild(line); });
-        stage.update();
-        var counter = 0;
-        var timer = setInterval(function () {
-            _.chain(_this.lines).rest(counter).first(animation_path_length).forEach(function (line) { line.alpha = 1; });
-            _.chain(_this.lines).rest(0).first(counter)
-                .forEach(function (line) {
-                if (line.alpha > 0)
-                    line.alpha -= 0.1;
-            });
-            counter += 1;
-            stage.update();
-            if (_.every(_this.lines, function (line) { return line.alpha < 0; })) {
-                _this.lines.forEach(function (line) { return stage.removeChild(line); });
-                clearInterval(timer);
-            }
-        }, 1000 / fps);
-    };
     return AnimationPath;
 }());
+var AnimationLine = (function (_super) {
+    __extends(AnimationLine, _super);
+    function AnimationLine() {
+        _super.call(this);
+        this._pointStack = [];
+        this._points = [];
+    }
+    Object.defineProperty(AnimationLine.prototype, "LINE_LENGTH", {
+        get: function () {
+            return 20;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AnimationLine.prototype, "onAnimationEndFunc", {
+        set: function (onAnimationEndFunc) {
+            this._onAnimationEndFunc = onAnimationEndFunc;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    AnimationLine.prototype.startAnimationOnPath = function (path, dulation) {
+        if (dulation === void 0) { dulation = 3000; }
+        // アニメーション用の先導ポイント
+        // この点をベジェ曲線に沿ってアニメーションさせる
+        // ポイントの移動経路における任意地点から任意の地点を線で繋ぐことで、線が飛んでいくアニメーションを実現する
+        var origin = path.origin;
+        var animationLeadPoint = { x: origin.x, y: origin.y, isAnimationEnd: false };
+        this._points.push({ x: origin.x, y: origin.y });
+        this._startX = origin.x;
+        this._startY = origin.y;
+        // アニメーションを開始
+        createjs.Tween.get(animationLeadPoint)
+            .to({ guide: { path: path.points } }, dulation)
+            .set({ isAnimationEnd: true });
+        this.addEventListener('tick', this.movePath(animationLeadPoint));
+    };
+    AnimationLine.prototype.movePath = function (animationLeadPoint) {
+        var _this = this;
+        // TODO: 経路の位置を保存しておき、lineToで細かく繋げれば長さに応じた曲線は表現できる
+        return function () {
+            if (!animationLeadPoint.isAnimationEnd) {
+                var newPoint = { x: animationLeadPoint.x, y: animationLeadPoint.y };
+                _this._points.push(newPoint);
+            }
+            // 配列の先頭要素を削除して、左詰め
+            if (_this._points.length > _this.LINE_LENGTH || animationLeadPoint.isAnimationEnd) {
+                _this._points = _.rest(_this._points);
+            }
+            if (_this._points.length === 0) {
+                _this.dispatchEvent('onAnimationEnd');
+                return;
+            }
+            var startPoint = _this.startPoint;
+            var lastPoint = _this.lastPoint;
+            _this.graphics.clear();
+            _this.graphics
+                .beginStroke('red')
+                .setStrokeStyle(1.5)
+                .beginLinearGradientStroke(['rgba(255, 0, 0, 0.2)', 'rgba(255, 0, 0, 1)'], [0, 1], startPoint.x, startPoint.y, lastPoint.x, lastPoint.y);
+            // .lineTo(animationLeadPoint.x, animationLeadPoint.y)
+            /* 点の配列から線を描画 */
+            // 最初の点に移動
+            _this.graphics.moveTo(startPoint.x, startPoint.y);
+            // 残りの点を辿る      
+            _.chain(_this._points)
+                .rest()
+                .forEach(function (point) { return _this.graphics.lineTo(point.x, point.y); });
+        };
+    };
+    Object.defineProperty(AnimationLine.prototype, "startPoint", {
+        get: function () {
+            return _.first(this._points);
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AnimationLine.prototype, "lastPoint", {
+        get: function () {
+            return _.last(this._points);
+        },
+        enumerable: true,
+        configurable: true
+    });
+    AnimationLine.prototype.distance = function (x1, y1, x2, y2) {
+        var x = Math.abs(x1 - x2);
+        var y = Math.abs(y1 - y2);
+        return Math.sqrt(x * x + y * y);
+    };
+    return AnimationLine;
+}(createjs.Shape));
 var Product = (function (_super) {
     __extends(Product, _super);
+    // TODO: 画像の読み込みが非同期なので、クライアントでも非同期で待機できるようにする？ Promise
     function Product(img_url) {
         if (img_url === void 0) { img_url = 'http://www.rakuten.ne.jp/gold/sumahoke-su/iface/images/innovation03.png'; }
         _super.call(this, img_url);
-        this.IMG_URL = 'http://illustcut.com/box/life/money/osatsu02_01.png';
         this.WIDTH = 491 * 0.025;
         this.HEIGHT = 935 * 0.025;
         this.scaleX = 0.025;
         this.scaleY = 0.025;
     }
-    /**
-     * 移動アニメーションパスを設定する
-     * @param origin 出発地点
-     * @param destination 目的地点
-     */
-    Product.prototype.setAnimationPath = function (origin, destination) {
-        this.animationPath = new AnimationPath(origin, destination);
-        this.x = origin.x - this.WIDTH / 2;
-        this.y = origin.y - this.HEIGHT / 2;
-    };
-    Product.prototype.startAnimation = function (stage, fps) {
+    Object.defineProperty(Product.prototype, "origin", {
+        get: function () {
+            return this._origin;
+        },
+        set: function (origin) {
+            this._origin = origin;
+            this.x = origin.x - this.WIDTH / 2;
+            this.y = origin.y - this.HEIGHT / 2;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Product.prototype, "destination", {
+        get: function () {
+            return this._destination;
+        },
+        set: function (destination) {
+            this._destination = destination;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Product.prototype.startAnimationOnPath = function (path, dulation) {
         var _this = this;
-        if (fps === void 0) { fps = 60; }
-        stage.addChild(this);
-        stage.update();
-        // パスのアニメーションを設定
-        setTimeout(function () { return _this.animationPath.startAnimation(stage, 10, fps); }, 200);
-        var t = 0;
-        var timer = setInterval(function () {
-            t += 0.01;
-            // 目的地点まで到達したらアニメーションを終了
-            if (t > 1) {
-                clearInterval(timer);
-                _this.startReverseAnimation(stage, fps);
+        if (dulation === void 0) { dulation = 3000; }
+        // 画像の基準点を左上から中心に変更
+        var points = path.points.map(function (point, i) {
+            if (i % 2 === 0) {
+                point -= _this.WIDTH / 2;
             }
-            var point = _this.animationPath.getPointAtLength(t);
-            _this.x = point.x - _this.WIDTH / 2;
-            _this.y = point.y - _this.HEIGHT / 2;
-            stage.update();
-        }, 1000 / fps);
-    };
-    Product.prototype.startReverseAnimation = function (stage, fps) {
-        var _this = this;
-        if (fps === void 0) { fps = 60; }
-        var img = new Image();
-        img.onload = function () {
-            stage.removeChild(_this);
-            _this.image = img;
-            _this.WIDTH = img.width * 0.075;
-            _this.HEIGHT = img.height * 0.075;
-            _this.scaleX = 0.075;
-            _this.scaleY = 0.075;
-            _this.setAnimationPath(_this.animationPath.getDestination(), _this.animationPath.getOrigin());
-            _this.startAnimation(stage, fps);
-        };
-        img.src = 'http://illustcut.com/box/life/money/osatsu02_01.png';
+            else {
+                point -= _this.HEIGHT / 2;
+            }
+            return point;
+        });
+        createjs.Tween.get(this)
+            .to({ guide: { path: points } }, dulation)
+            .call(function () { return _this.dispatchEvent('onAnimationEnd'); });
     };
     return Product;
 }(createjs.Bitmap));
@@ -178,11 +232,43 @@ var AnimationStage = (function (_super) {
     __extends(AnimationStage, _super);
     function AnimationStage(canvas) {
         _super.call(this, canvas);
+        this.PRODUCT_IMG_URL = 'http://www.rakuten.ne.jp/gold/sumahoke-su/iface/images/innovation03.png';
+        this.MONEY_IMG_URL = 'http://illustcut.com/box/life/money/osatsu02_01.png';
         this.products = [];
     }
     AnimationStage.prototype.addProduct = function (product) {
-        this.products.push(product);
-        product.startAnimation(this);
+        var _this = this;
+        var line = new AnimationLine();
+        this.addChild(product);
+        this.addChild(line);
+        line.addEventListener('onAnimationEnd', function () {
+            // 逆向きのアニメーションを行うために線を初期化
+            _this.removeChild(line);
+            _this.removeChild(product);
+            line = new AnimationLine();
+            _this.addChild(line);
+            _this.addChild(product);
+            // 配送されてお金になって戻ってきたら、商品と線をステージ上から削除
+            line.addEventListener('onAnimationEnd', function () {
+                _this.removeChild(line);
+                _this.removeChild(product);
+            });
+            // 目的地点から逆順にアニメーションさせる
+            _this.loadImage(_this.MONEY_IMG_URL, function (image) {
+                product.image = image;
+                var path = new AnimationPath(product.destination, product.origin);
+                // setTimeout(() => , 10)
+                product.startAnimationOnPath(path, 2000);
+                line.startAnimationOnPath(path, 2000);
+            });
+        });
+        var animationPath = new AnimationPath(product.origin, product.destination);
+        product.startAnimationOnPath(animationPath, 7000);
+        line.startAnimationOnPath(animationPath, 7000);
+    };
+    AnimationStage.prototype.loadImage = function (url, onload) {
+        var bitmap = new createjs.Bitmap(url);
+        bitmap.image.onload = onload(bitmap.image);
     };
     return AnimationStage;
 }(createjs.Stage));
@@ -199,6 +285,8 @@ var View = (function () {
             center: [137.91854900230788, 38.734418429646695],
             zoom: 4.7 // starting zoom
         });
+        createjs.MotionGuidePlugin.install();
+        createjs.Ticker.addEventListener('tick', function () { return _this.animationStage.update(); });
         this.animationStage = new AnimationStage('canvas');
         this.map.on('load', function () {
             _this.controller = new Controller(_this);
@@ -220,7 +308,8 @@ var View = (function () {
         var origin = this.map.project(this.HAMEE_LOCATION);
         var destination = this.map.project(mapboxgl.LngLat.convert([lng, lat]));
         products.forEach(function (product) {
-            product.setAnimationPath(origin, destination);
+            product.origin = origin;
+            product.destination = destination;
         });
         return products;
     };
@@ -247,4 +336,7 @@ var RequestHandler = (function () {
     };
     return RequestHandler;
 }());
+var canvas = document.getElementById('canvas');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 var view = new View();
